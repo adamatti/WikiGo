@@ -7,26 +7,25 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"wiki/db"
 )
 
 // https://www.golangprograms.com/example-to-handle-get-and-post-request-in-golang.html
-func HandlePostWiki(w http.ResponseWriter, r *http.Request){
+func HandlePostWiki(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusNotAcceptable)
 		fmt.Fprintf(w, "ParseForm() err: %v", err)
 		return
 	}
-	name:= r.URL.Path[len("/wiki/"):]
+	name := getNameFromUrl(r.URL)
 	db.SaveTiddly(name, getBody(r))
 	w.WriteHeader(http.StatusOK)
-	printRequest(w,r)
 }
 
-func printRequest(w http.ResponseWriter, r *http.Request){
-	fmt.Fprintf(w, "Post from website! r.PostFrom = %v\n", r.PostForm)
-	fmt.Fprintf(w, "Form values: %v\n", r.Form)
-	//fmt.Fprintf(w, "Body: %v", getBodyAsString(r))
+// TODO add a regex to validate it
+func getNameFromUrl(url *url.URL) string {
+	return url.Path[len("/wiki/"):]
 }
 
 func getBody(r *http.Request) []byte {
@@ -35,7 +34,7 @@ func getBody(r *http.Request) []byte {
 }
 
 func HandleGetWiki(w http.ResponseWriter, r *http.Request){
-	name:= r.URL.Path[len("/wiki/"):]
+	name:= getNameFromUrl(r.URL)
 	log.Printf("Wiki called, name:%s\n", name)
 	body:= db.FindTiddlyByName(name)
 	if body == nil {
@@ -43,7 +42,6 @@ func HandleGetWiki(w http.ResponseWriter, r *http.Request){
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Accept","application/json")
 	fmt.Fprintf(w, "%s", parseMarkdown(body))
 }
 
